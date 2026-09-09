@@ -1,0 +1,8 @@
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Keep requests for /web as-is; send bare domain root into /web/
+  RewriteRule ^$ web/ [L]
+</IfModule>

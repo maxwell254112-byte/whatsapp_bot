@@ -1,4 +1,5 @@
 Options -Indexes
+DirectoryIndex index.php index.html
 
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"
@@ -6,9 +7,20 @@ Options -Indexes
   Header set Referrer-Policy "same-origin"
 </IfModule>
 
-# Protect config
-<FilesMatch "^(config\.local\.ini|config\.example\.ini)$">
+# Protect local config / secrets from HTTP download
+<FilesMatch "^(config\.local\.ini|config\.example\.ini|config\.cpanel\.example\.ini|config\.local\.ini\.template)$">
   <IfModule mod_authz_core.c>
     Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Allow PHP entrypoints explicitly (helps some hardened cPanel setups)
+<FilesMatch "\.(php)$">
+  <IfModule mod_authz_core.c>
+    Require all granted
   </IfModule>
 </FilesMatch>

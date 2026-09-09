@@ -1,4 +1,8 @@
-# Deny direct access to includes
+# Deny HTTP access to PHP includes (not used as document root)
 <IfModule mod_authz_core.c>
   Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
 </IfModule>

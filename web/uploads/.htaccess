@@ -1,4 +1,8 @@
-# Block direct web access to uploaded media (use authenticated download endpoints)
+# Deny direct HTTP access to uploaded files (download via authenticated PHP)
 <IfModule mod_authz_core.c>
   Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
 </IfModule>
