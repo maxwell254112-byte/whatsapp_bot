@@ -1,0 +1,41 @@
+# Secrets & local config
+web/config.local.ini
+worker/config.ini
+worker/wa_profile/
+worker/screenshots/
+worker/temp/
+web/uploads/media/*
+!web/uploads/media/.htaccess
+web/uploads/temp/*
+
+# Build / cPanel packages (may contain secrets)
+dist/
+*.zip
+
+# Scratch scripts with local paths
+send_*.php
+fix_*.php
+queue_*.php
+reset_admin.php
+check_*.php
+pending_status.php
+photo_status.php
+jobs78.php
+resend_*.php
+test_all_features.php
+setup_db.php
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
