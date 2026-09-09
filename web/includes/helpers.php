@@ -12,47 +12,72 @@ function app_config(string $section, string $key, mixed $default = null): mixed
     return $CONFIG[$section][$key] ?? $default;
 }
 
-/**
- * Public web root URL (no trailing slash), e.g. https://host/whatsapp_bot/web
- * Prefers config base_url; falls back to detecting from the current script path.
- */
-function web_base_url(): string
+/** URL path to the web root, e.g. /whatsapp_bot/web (no trailing slash). */
+function web_base_path(): string
 {
-    $configured = rtrim((string)app_config('app', 'base_url', ''), '/');
-    if ($configured !== '' && !str_contains($configured, 'YOUR_DOMAIN')) {
-        return $configured;
-    }
-
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || ((string)($_SERVER['SERVER_PORT'] ?? '') === '443')
-        || (strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
-    $scheme = $https ? 'https' : 'http';
-    $host = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
     $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
     $dir = str_replace('\\', '/', dirname($script));
-    if (str_ends_with($dir, '/admin') || str_ends_with($dir, '/api/worker')) {
+    if (str_ends_with($dir, '/admin')) {
+        $dir = dirname($dir);
+    }
+    if (str_ends_with($dir, '/worker')) {
         $dir = dirname($dir);
     }
     if (str_ends_with($dir, '/api')) {
         $dir = dirname($dir);
     }
     if ($dir === '/' || $dir === '\\' || $dir === '.') {
-        $dir = '';
+        return '';
     }
-    return $scheme . '://' . $host . $dir;
+    return rtrim($dir, '/');
+}
+
+/** Scheme + host + web path from the current HTTP request. */
+function request_public_url(): string
+{
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ((string)($_SERVER['SERVER_PORT'] ?? '') === '443')
+        || (strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
+    $scheme = $https ? 'https' : 'http';
+    $host = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
+    return $scheme . '://' . $host . web_base_path();
+}
+
+/**
+ * Public web root URL (no trailing slash).
+ * Ignores localhost base_url when the real request host is not local (common cPanel misconfig).
+ */
+function web_base_url(): string
+{
+    $fromRequest = request_public_url();
+    $configured = rtrim((string)app_config('app', 'base_url', ''), '/');
+    if ($configured === '' || str_contains($configured, 'YOUR_DOMAIN')) {
+        return $fromRequest;
+    }
+
+    $cfgHost = strtolower((string)(parse_url($configured, PHP_URL_HOST) ?? ''));
+    $reqHost = strtolower(explode(':', (string)($_SERVER['HTTP_HOST'] ?? 'localhost'))[0]);
+    $localHosts = ['localhost', '127.0.0.1'];
+    if (in_array($cfgHost, $localHosts, true) && !in_array($reqHost, $localHosts, true)) {
+        return $fromRequest;
+    }
+
+    return $configured;
 }
 
 function asset_url(string $relativePath): string
 {
     $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+    $base = web_base_path();
+    // Path-absolute URLs always use the browser's current host (never localhost from config).
     // Prefer PHP fallback for css/js so hosts that 403 static files still work.
     if ($relativePath === 'assets/css/app.css') {
-        return rtrim(web_base_url(), '/') . '/asset.php?f=css/app.css';
+        return $base . '/asset.php?f=css/app.css';
     }
     if ($relativePath === 'assets/js/app.js') {
-        return rtrim(web_base_url(), '/') . '/asset.php?f=js/app.js';
+        return $base . '/asset.php?f=js/app.js';
     }
-    return rtrim(web_base_url(), '/') . '/' . $relativePath;
+    return $base . '/' . $relativePath;
 }
 
 function now_utc(): string

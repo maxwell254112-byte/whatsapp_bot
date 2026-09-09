@@ -17,7 +17,7 @@ function render_header(string $title, string $active = ''): void
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <base href="<?= e(rtrim(web_base_url(), '/') . '/') ?>">
+  <base href="<?= e(rtrim(request_public_url(), '/') . '/') ?>">
   <title><?= e($title) ?> · <?= e(t('app_name')) ?></title>
   <link rel="stylesheet" href="<?= e($cssHref) ?>">
 </head>
