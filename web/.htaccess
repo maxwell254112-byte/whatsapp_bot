@@ -18,9 +18,13 @@ DirectoryIndex index.php index.html
   </IfModule>
 </FilesMatch>
 
-# Allow PHP entrypoints explicitly (helps some hardened cPanel setups)
-<FilesMatch "\.(php)$">
+# Allow PHP + static front-end assets (some cPanel hosts default-deny non-PHP)
+<FilesMatch "\.(php|css|js|map|png|jpe?g|gif|svg|ico|webp|woff2?|ttf|eot)$">
   <IfModule mod_authz_core.c>
     Require all granted
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
   </IfModule>
 </FilesMatch>

@@ -12,6 +12,49 @@ function app_config(string $section, string $key, mixed $default = null): mixed
     return $CONFIG[$section][$key] ?? $default;
 }
 
+/**
+ * Public web root URL (no trailing slash), e.g. https://host/whatsapp_bot/web
+ * Prefers config base_url; falls back to detecting from the current script path.
+ */
+function web_base_url(): string
+{
+    $configured = rtrim((string)app_config('app', 'base_url', ''), '/');
+    if ($configured !== '' && !str_contains($configured, 'YOUR_DOMAIN')) {
+        return $configured;
+    }
+
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ((string)($_SERVER['SERVER_PORT'] ?? '') === '443')
+        || (strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
+    $scheme = $https ? 'https' : 'http';
+    $host = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+    $dir = str_replace('\\', '/', dirname($script));
+    if (str_ends_with($dir, '/admin') || str_ends_with($dir, '/api/worker')) {
+        $dir = dirname($dir);
+    }
+    if (str_ends_with($dir, '/api')) {
+        $dir = dirname($dir);
+    }
+    if ($dir === '/' || $dir === '\\' || $dir === '.') {
+        $dir = '';
+    }
+    return $scheme . '://' . $host . $dir;
+}
+
+function asset_url(string $relativePath): string
+{
+    $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+    // Prefer PHP fallback for css/js so hosts that 403 static files still work.
+    if ($relativePath === 'assets/css/app.css') {
+        return rtrim(web_base_url(), '/') . '/asset.php?f=css/app.css';
+    }
+    if ($relativePath === 'assets/js/app.js') {
+        return rtrim(web_base_url(), '/') . '/asset.php?f=js/app.js';
+    }
+    return rtrim(web_base_url(), '/') . '/' . $relativePath;
+}
+
 function now_utc(): string
 {
     return gmdate('Y-m-d H:i:s');
@@ -56,12 +99,15 @@ function user_agent(): string
 
 function redirect(string $path): never
 {
-    $base = rtrim((string)app_config('app', 'base_url', ''), '/');
     if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
         header('Location: ' . $path);
-    } else {
-        header('Location: ' . $base . '/' . ltrim($path, '/'));
+        exit;
     }
+
+    $base = rtrim(web_base_url(), '/');
+    $path = ltrim($path, '/');
+    // Support legacy callers like admin/dashboard.php
+    header('Location: ' . $base . '/' . $path);
     exit;
 }
 

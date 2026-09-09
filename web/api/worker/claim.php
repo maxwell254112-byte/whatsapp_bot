@@ -17,7 +17,7 @@ if (!$job) {
 $mediaUrl = null;
 $mediaMeta = null;
 if (!empty($job['media_id'])) {
-    $mediaUrl = rtrim((string)app_config('app', 'base_url'), '/') . '/api/worker/media.php?id=' . (int)$job['media_id'];
+    $mediaUrl = rtrim(web_base_url(), '/') . '/api/worker/media.php?id=' . (int)$job['media_id'];
     $mediaMeta = fetch_media((int)$job['media_id']);
 }
 
